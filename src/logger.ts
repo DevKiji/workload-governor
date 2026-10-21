@@ -21,10 +21,24 @@ declare global {
 
 export function correlationIdMiddleware(
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction,
 ): void {
   req.correlationId = uuidv4();
+
+  const startTime = Date.now();
+
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    logger.info({
+      correlationId: req.correlationId,
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      duration,
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   next();
 }
