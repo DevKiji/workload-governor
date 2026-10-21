@@ -1,7 +1,8 @@
 import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import morgan from 'morgan';
+import pinoHttp from 'pino-http';
+import { logger } from './logger';
 import issuesRouter from './routes/issues';
 import contributorsRouter from './routes/contributors';
 import adminRouter from './routes/admin';
@@ -30,13 +31,17 @@ export function createApp(): express.Application {
     credentials: true,
   }));
 
-  // Logging middleware
-  app.use(morgan('combined'));
+  app.use(correlationIdMiddleware);
+
+  // Structured HTTP access logs share the application logger and request ID.
+  app.use(pinoHttp({
+    logger,
+    genReqId: (req) => (req as Request).correlationId,
+  }));
 
   // JSON parser middleware
   app.use(express.json());
   app.use(express.static('public'));
-  app.use(correlationIdMiddleware);
 
   // Rate limiting middleware
   app.use(globalLimiter);
